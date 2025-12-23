@@ -84,15 +84,15 @@ double inv_quad(double (*fp)(double), double x0, double x1, double x2, double ep
  */
 double f(double x)
 {
-    double sum;
+    double xp, sum;
 
-    // f(x) = x^4 - 2x^3 + 3x^2 - 4x - 4
-    sum = x * x * x * x;
-    sum = sum - 2.0 * x * x * x;
-    sum = sum + 3.0 * x * x;
-    sum = sum - 4.0 * x;
-    sum = sum - 4.0;
+    sum = 1.1 * x * x * x * x;
+    sum = sum - 2.1 * x * x;
+    sum = sum - 0.2;
+
+    return sum;
 } // f
+
 
 /**
  * @brief Main function to test the Inverse Quadratic Interpolation routine.
