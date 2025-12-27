@@ -201,6 +201,11 @@ int main() {
 
     printf("\nOptimal solution:\n");
     for(int i=0; i<n; i++) printf("xstar[%d] = %lf\n", i, xstar[i]);
+
+  printf("\n\nIn degrees: xstar[0] = %lf\n,  xstar[1] = %lf\n,  xstar[2] = %lf\n",
+                xstar[0]*180.0/M_PI, xstar[1]*180.0/M_PI, xstar[2]*180.0/M_PI);
+
+
     printf("\nOptimal value = %lf\n", f_example(xstar));
 
     return 0;
