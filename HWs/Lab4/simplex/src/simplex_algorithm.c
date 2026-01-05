@@ -1,218 +1,89 @@
-// simplex_algorithm.c
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include "simplex.h"
 
-void simplex_algorithm()
-{
-   int i, j,k, optimal_flag, enter_id,  exiting_id, itemp, basis_i;
-   double dtemp, min_value;
-   int count=1;
+void simplex_algorithm() {
+    int i, j, k, optimal_flag, enter_id, exiting_id, basis_i;
+    double min_criteria, current_criteria, norm_sq, reduced_cost;
+    int iteration = 1;
 
-  optimal_flag = 0;
+    optimal_flag = 0;
 
-  printf(" m = %d, n = %d\n", m, n);
+    // Main Simplex Loop
+    while (!optimal_flag) {
+        enter_id = -1;
+        min_criteria = 0; // We look for the most negative value
 
-  printf("\nbasis1:\n");
-  for(i=0; i < m; i++)
-    printf(" %d ", basis[i]);
-  printf("\n");
+        // 1. SELECT ENTERING VARIABLE (Steepest Edge Rule)
+        for (j = 0; j < n; j++) {
+            // Check if variable j is non-basic (Reduced cost is in the objective row, e.g., A[m][j])
+            // In many implementations, reduced costs rd are in row 'm'
+            reduced_cost = A[m][j]; 
 
+            if (reduced_cost < -1e-9) { // Candidate for entering
+                norm_sq = 0;
+                // Calculate the squared norm of the direction vector: 1 + ||B^-1 * Ak||^2
+                // The column A[i][j] for i=0..m-1 represents B^-1 * Ak in the tableau
+                for (i = 0; i < m; i++) {
+                    norm_sq += A[i][j] * A[i][j];
+                }
+                
+                // steepest descent criteria: rd / sqrt(1 + sum(d_i^2))
+                current_criteria = reduced_cost / sqrt(1 + norm_sq);
 
-  printf("A:\n");
-  for(i=0; i < m; i++)
-   {
-     for(j=0; j < n; j++)
-       printf(" %6.2lf ", A[i][j]);
-     printf("\n");
-   } // for
+                if (enter_id == -1 || current_criteria < min_criteria) {
+                    min_criteria = current_criteria;
+                    enter_id = j;
+                }
+            }
+        }
 
+        // Check for optimality
+        if (enter_id == -1) {
+            optimal_flag = 1;
+            printf("Optimal solution found at iteration %d\n", iteration);
+            break;
+        }
 
-  
- while(optimal_flag == 0)
- {
+        // 2. SELECT EXITING VARIABLE (Ratio Test)
+        exiting_id = -1;
+        double min_ratio = -1;
 
-  printf("count = %d\n", count);
-  count++;
- 
-  bublesort(basis, m);
+        for (i = 0; i < m; i++) {
+            if (A[i][enter_id] > 1e-9) {
+                double ratio = A[i][n] / A[i][enter_id]; // A[i][n] is usually the RHS (b)
+                if (exiting_id == -1 || ratio < min_ratio) {
+                    min_ratio = ratio;
+                    exiting_id = i;
+                }
+            }
+        }
 
-  printf("\nbasis2:\n");
-  for(i=0; i < m; i++)
-    printf(" %d ", basis[i]);
-  printf("\n");
+        if (exiting_id == -1) {
+            printf("Unbounded problem.\n");
+            return;
+        }
 
- 
-  set_d();
+        // 3. PIVOTING
+        // Update basis: basis[exiting_id] = enter_id
+        basis[exiting_id] = enter_id;
 
+        // Perform Gaussian elimination on the tableau
+        double pivot_val = A[exiting_id][enter_id];
+        for (j = 0; j <= n; j++) {
+            A[exiting_id][j] /= pivot_val;
+        }
 
-   printf("\nd:\n");
-   for(i=0; i < n; i++)
-     printf(" %d ", d[i]);
-   printf("\n");
-
-
-   set_A_aux();
-
-  printf("\nA_aux (B, D):\n");
-  for(i=0; i < m; i++)
-   {
-     for(j=0; j < n; j++)
-       printf(" %6.2lf ", A_aux[i][j]);
-     printf("\n");
-   } // for
-
-
-   copy_submatrix(B, A_aux, 0, m, 0, m); // Set B
-
-  printf("\nB:\n");
-  for(i=0; i < m; i++)
-   {
-     for(j=0; j < m; j++)
-        printf(" %6.2lf ", B[i][j]);
-     printf("\n");
-   } // for  
-
-
-   inv_gaussian(BI, B,  m); // BI = B-1  
-
-   erase_epsilons_matrix(BI, m, m);
-
-   printf("\nBI:\n");
-   for(i=0; i < m; i++)
-    {
-      for(j=0; j < m; j++)
-         printf(" %6.2lf ", BI[i][j]);
-      printf("\n");
-    } // for  
-
-
-   matrix_mult(BIA_aux, BI, A_aux,
-            m, m, n);
-   erase_epsilons_matrix(BIA_aux, m, n);
-   
-  printf("\nBIA_aux (I, B-1*D):\n");
-  for(i=0; i < m; i++)
-   {
-     for(j=0; j < n; j++)
-        printf(" %6.2lf ", BIA_aux[i][j]);
-     printf("\n");
-   } // for  
-
-  printf("\nA_aux (B,D):\n");
-  for(i=0; i < m; i++)
-   {
-     for(j=0; j < n; j++)
-        printf(" %6.2lf ", A_aux[i][j]);
-     printf("\n");
-   } // for  
-
-
-   printf("b:\n");
-   for(i=0; i < m; i++)
-     printf(" %6.2lf ", b[i]);
-
-
-
-   matrix_vector_mult(BIb, BI, b, m, m);
-   erase_epsilons_vector(BIb, m);
-
-   printf("\nBIb:\n");
-   for(i=0; i < m; i++)
-     printf(" %6.2lf ", BIb[i]);
-   printf("\n");
-
-
-   copy_submatrix(D, A_aux,  
-         0, m, m, n-m); // Set D
-
-  printf("D:\n");
-  for(i=0; i < m; i++)
-   {
-     for(j=0; j < n-m; j++)
-        printf(" %6.2lf ", D[i][j]);
-     printf("\n");
-   } // for  
-
-// END OF FOR DEBUG ONLY
-
-   compute_cb_cd();
-
-   printf("\ncb:\n");
-   for(i=0; i < m; i++)
-     printf(" %6.2lf ", cb[i]);
-   printf("\n");
-
-   printf("\ncd:\n");
-   for(i=0; i < (n-m); i++)
-     printf(" %6.2lf ", cd[i]);
-   printf("\n");
-
-
-// cbBI = cb * B-1
-
-   vector_matrix_mult(cbBI, cb, BI, m, m); 
-   erase_epsilons_vector(cbBI, m);
-
-   printf("\ncbBI:\n");
-   for(i=0; i < m; i++)
-     printf(" %6.2lf ", cbBI[i]);
-   printf("\n");
-
-
-    vector_matrix_mult(cbBID, cbBI, D, 
-    m, n - m); 
-   erase_epsilons_vector(cbBID, n - m);
-
-
-  printf("\ncbBID:\n");
-  for(i=0; i < (n - m); i++)
-        printf(" %6.2lf ", cbBID[i]);
-   printf("\n");
-
-
-
-    vector_subtract(rd, cd,  cbBID, 
-     n-m);
-    erase_epsilons_vector(rd, n - m);
-
-   printf("\nrd( cd - cbBID ):\n");
-   for(i=0; i < (n-m); i++)
-     printf(" %6.2lf ", rd[i]);
-   printf("\n\n");
-
-
-    min_value = find_min_value(rd, n-m);
-    if (min_value >= 0.0) 
-       optimal_flag = 1;
-    else
-    {
-        enter_id = find_most_negative();
-        exiting_id = 
-      find_exiting_id(BIA_aux,BIb,
-           enter_id, n, m);
-     printf("\nenter_id  = %d,  exiting_id = %d," 
-              " d[exiting_id] = %d\n", 
-                                  enter_id, exiting_id, 
-                                  d[exiting_id]);
-
-  printf("pivot: enter_id = %d, exiting_id = %d\n", enter_id,
-d[exiting_id]);
-
-
-
-
-   basis[exiting_id] =   enter_id;
-   printf("\nbasis3:\n");
-   for(i=0; i < m; i++)
-     printf(" %d ", basis[i]);
-   printf("\n");
-
-    } // else 
-
- } // while
-
-} //simplex_algorithm
-         
+        for (i = 0; i <= m; i++) {
+            if (i != exiting_id) {
+                double factor = A[i][enter_id];
+                for (j = 0; j <= n; j++) {
+                    A[i][j] -= factor * A[exiting_id][j];
+                }
+            }
+        }
+        
+        iteration++;
+    }
+}
